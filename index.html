@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECE Program Quality Dashboard · FY 2024</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&family=DM+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal:    #1D9E75;
+    --teal-lt: #E1F5EE;
+    --teal-dk: #085041;
+    --blue:    #185FA5;
+    --blue-lt: #E6F1FB;
+    --amber:   #BA7517;
+    --amber-lt:#FAEEDA;
+    --coral:   #993C1D;
+    --coral-lt:#FAECE7;
+    --gray:    #5F5E5A;
+    --gray-lt: #F1EFE8;
+    --ink:     #1a1a18;
+    --muted:   #6b6b67;
+    --border:  rgba(0,0,0,0.1);
+    --surface: #fafaf8;
+    --white:   #ffffff;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #f4f3ef;
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── HEADER ── */
+  .site-header {
+    background: var(--ink);
+    padding: 28px 40px 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--teal);
+  }
+  .header-left h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: #fff;
+    letter-spacing: -0.3px;
+    line-height: 1.15;
+  }
+  .header-left h1 em { color: #9FE1CB; font-style: italic; }
+  .header-left p {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    margin-top: 5px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.04em;
+  }
+  .header-meta {
+    display: flex;
+    gap: 24px;
+    align-items: flex-end;
+  }
+  .meta-item { text-align: right; }
+  .meta-item .val { font-size: 22px; font-weight: 500; color: #9FE1CB; }
+  .meta-item .lbl { font-size: 10px; color: rgba(255,255,255,0.45); text-transform: uppercase; letter-spacing: 0.07em; }
+
+  /* ── LAYOUT ── */
+  .main { padding: 28px 40px 48px; max-width: 1200px; margin: 0 auto; }
+  .section-label {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .card {
+    background: var(--white);
+    border-radius: 10px;
+    border: 0.5px solid var(--border);
+    padding: 18px 20px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 3px;
+  }
+  .card-note {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1.1fr 0.9fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .grid-full { margin-bottom: 20px; }
+
+  /* ── KPI CARDS ── */
+  .kpi { background: var(--surface); border-radius: 8px; padding: 14px 16px; border: 0.5px solid var(--border); }
+  .kpi .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 6px; }
+  .kpi .val { font-size: 26px; font-weight: 300; color: var(--ink); line-height: 1; }
+  .kpi .val span { font-size: 13px; font-weight: 400; }
+  .kpi .delta { font-size: 11px; margin-top: 5px; }
+  .delta.good { color: var(--teal); }
+  .delta.warn { color: var(--amber); }
+  .delta.bad  { color: var(--coral); }
+
+  /* ── FLAG BADGE ── */
+  .flag { display: inline-block; font-size: 10px; padding: 2px 7px; border-radius: 3px; font-family: 'DM Mono', monospace; }
+  .flag-warn { background: var(--amber-lt); color: var(--amber); }
+  .flag-good { background: var(--teal-lt); color: var(--teal-dk); }
+  .flag-alert { background: var(--coral-lt); color: var(--coral); }
+
+  /* ── ECERS SUBSCALE TABLE ── */
+  .subscale-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .subscale-name { font-size: 12px; color: var(--muted); width: 130px; flex-shrink: 0; }
+  .subscale-bars { flex: 1; }
+  .bar-wrap { position: relative; height: 8px; background: var(--gray-lt); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .subscale-val { font-size: 12px; font-weight: 500; width: 28px; text-align: right; }
+  .threshold-line {
+    position: absolute; top: 0; bottom: 0;
+    width: 1.5px; background: rgba(0,0,0,0.25);
+    left: calc(57.1% ); /* 4/7 = good threshold */
+  }
+
+  /* ── CLASSROOM TABLE ── */
+  .cr-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .cr-table th {
+    text-align: left; padding: 6px 10px;
+    font-size: 10px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .cr-table td { padding: 9px 10px; border-bottom: 0.5px solid var(--border); vertical-align: middle; }
+  .cr-table tr:last-child td { border-bottom: none; }
+  .cr-table tr:hover td { background: var(--surface); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle; }
+
+  /* ── FINDING CARDS ── */
+  .finding { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px;
+    border-radius: 8px; margin-bottom: 8px; }
+  .finding:last-child { margin-bottom: 0; }
+  .finding.pos { background: var(--teal-lt); }
+  .finding.warn { background: var(--amber-lt); }
+  .finding.alert { background: var(--coral-lt); }
+  .finding-icon { font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+  .finding-text { font-size: 12px; line-height: 1.55; }
+  .finding.pos .finding-text { color: var(--teal-dk); }
+  .finding.warn .finding-text { color: var(--amber); }
+  .finding.alert .finding-text { color: var(--coral); }
+  .finding-text strong { font-weight: 500; }
+
+  /* ── METHODOLOGY BOX ── */
+  .method-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 10px; }
+  .method-item { background: var(--surface); border-radius: 6px; padding: 10px 12px; border-left: 3px solid var(--teal); }
+  .method-tool { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); margin-bottom: 4px; }
+  .method-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+  footer {
+    background: var(--ink); color: rgba(255,255,255,0.35);
+    font-size: 10px; font-family: 'DM Mono', monospace;
+    padding: 14px 40px; letter-spacing: 0.04em;
+    display: flex; justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-left">
+    <h1>ECE Program Quality Dashboard<br><em>Classroom Environment & Child Outcomes</em></h1>
+    <p>Synthetic practitioner-derived dataset · 7 classrooms · Ages 3–5 · AY 2024 · Tools: R · SPSS · Power BI</p>
+  </div>
+  <div class="header-meta">
+    <div class="meta-item">
+      <div class="val">133</div>
+      <div class="lbl">Children enrolled</div>
+    </div>
+    <div class="meta-item">
+      <div class="val">7</div>
+      <div class="lbl">Classrooms</div>
+    </div>
+    <div class="meta-item">
+      <div class="val">3.82</div>
+      <div class="lbl">Avg ECERS composite</div>
+    </div>
+    <div class="meta-item">
+      <div class="val">87.0<span>%</span></div>
+      <div class="lbl">Avg attendance</div>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- KPI ROW -->
+  <div class="section-label">Key indicators</div>
+  <div class="grid-4">
+    <div class="kpi">
+      <div class="lbl">CLASS emotional support</div>
+      <div class="val">6.1 <span>/ 7</span></div>
+      <div class="delta good">▲ High across all 7 classrooms</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Avg structural subscale</div>
+      <div class="val">2.4 <span>/ 7</span></div>
+      <div class="delta bad">▼ Below "minimal" threshold (3.0)</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Handwashing compliance</div>
+      <div class="val">72 <span>%</span></div>
+      <div class="delta warn">⚠ Inconsistent across rooms</div>
+    </div>
+    <div class="kpi">
+      <div class="lbl">Children with IEP / IFSP</div>
+      <div class="val">13 <span>of 133</span></div>
+      <div class="delta warn">CR06 carries 4 — co-teacher vacant</div>
+    </div>
+  </div>
+
+  <!-- ECERS SUBSCALES + SCATTER -->
+  <div class="section-label">ECERS-3 subscale profile — program average</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Subscale scores — all 7 classrooms averaged</div>
+      <div class="card-note">7-point scale · dashed line = "good" threshold (4.0) · structural scores reflect building age, not teacher quality</div>
+      <div id="subscales"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">CLASS emotional support vs. ECERS composite</div>
+      <div class="card-note">Each point = one classroom · Strong ES scores persist despite low ECERS composites — instrument divergence</div>
+      <div style="position:relative;height:240px;">
+        <canvas id="scatterChart" role="img" aria-label="Scatter plot showing CLASS Emotional Support scores versus ECERS composite scores by classroom">Scatter data: 7 classrooms plotted by ECERS composite (x) and CLASS Emotional Support (y).</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLASSROOM TABLE + HANDWASHING -->
+  <div class="section-label">Classroom-level detail</div>
+  <div class="grid-full">
+    <div class="card">
+      <div class="card-title">All classrooms — observation snapshot</div>
+      <div class="card-note">One observation period per classroom · Oct 2024 · CR04 handwashing data missing (observer interrupted)</div>
+      <table class="cr-table" id="classroomTable"></table>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="section-label">Attendance, ASQ-3 domains, and handwashing</div>
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">Attendance rate by classroom</div>
+      <div class="card-note">CR06 lowest — high IEP load, vacant co-teacher position since September</div>
+      <div style="position:relative;height:210px;">
+        <canvas id="attendChart" role="img" aria-label="Bar chart showing attendance rate by classroom, ranging from 79.8% to 92.3%">Attendance rates: CR01 88.2, CR02 91.0, CR03 83.7, CR04 87.4, CR05 92.3, CR06 79.8, CR07 85.5.</canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">ASQ-3 developmental screening — % of children on track by domain</div>
+      <div class="card-note">Ranked high to low · the shorter the bar, the more children in that domain need follow-up support</div>
+      <div style="position:relative;height:210px;">
+        <canvas id="asqChart" role="img" aria-label="Horizontal bar chart ranking ASQ-3 developmental domains from highest to lowest percentage of children scoring on track">ASQ-3 domains ranked: gross motor 80%, communication 74%, fine motor 68%, problem solving 63%, personal-social 58%.</canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Handwashing compliance by classroom</div>
+      <div class="card-note">% children observed washing ≥15 sec · CR04 missing · CR03 lowest at 58%</div>
+      <div style="position:relative;height:210px;">
+        <canvas id="hwChart" role="img" aria-label="Horizontal bar chart of handwashing compliance percentage by classroom">Handwashing compliance percentages by classroom with CR04 data missing.</canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- R + SPSS OUTPUT -->
+  <div class="section-label">Statistical analysis — R &amp; SPSS outputs</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">R — linear regression: predictors of attendance rate</div>
+      <div class="card-note">lm() · DV: attendance rate · n = 133 · run in R 4.3</div>
+      <div style="position:relative;height:220px;">
+        <canvas id="regChart" role="img" aria-label="Horizontal bar chart showing regression coefficients for predictors of attendance rate">Regression coefficients: enrollment type FT positive, IEP negative, DLL slight negative, subsidy positive.</canvas>
+      </div>
+      <p style="font-size:10px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace;">R² = 0.38 · Adj. R² = 0.36 · F(4,128) = 19.6, p &lt; .001</p>
+      <div style="margin-top:12px;padding-top:10px;border-top:0.5px solid rgba(0,0,0,0.08);">
+        <p style="font-size:11px;color:var(--muted);line-height:1.6;"><strong style="color:var(--ink);font-weight:500;">What this means in plain language:</strong> This analysis asked — what factors are actually associated with whether a child shows up? The bars show the direction and strength of each factor. Green bars push attendance up; red bars pull it down. Children enrolled full-time attend significantly more often than part-time children. Having an IEP or IFSP is associated with slightly lower attendance — likely reflecting the additional coordination and appointment burden on families. The model explains about 38% of the variation in attendance rates, which is a solid fit for real-world program data.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">SPSS — one-way ANOVA: CLASS ES by age group</div>
+      <div class="card-note">DV: CLASS Emotional Support · IV: age group (3–4 yr vs 4–5 yr) · Cronbach's α = 0.86</div>
+      <div style="position:relative;height:220px;">
+        <canvas id="anovaChart" role="img" aria-label="Grouped bar chart comparing CLASS Emotional Support scores by age group across classrooms">CLASS Emotional Support scores compared between 3-4 year and 4-5 year age groups.</canvas>
+      </div>
+      <p style="font-size:10px;color:var(--muted);margin-top:8px;font-family:'DM Mono',monospace;">F(1,5) = 4.82, p = .08 · η² = 0.18 · Tukey HSD applied</p>
+      <div style="margin-top:12px;padding-top:10px;border-top:0.5px solid rgba(0,0,0,0.08);">
+        <p style="font-size:11px;color:var(--muted);line-height:1.6;"><strong style="color:var(--ink);font-weight:500;">What this means in plain language:</strong> This test asked — do teachers score differently on Emotional Support depending on whether they're working with 3–4 year olds versus 4–5 year olds? The result (p = .08) is close to significant but doesn't cross the standard threshold. In practical terms: there's a trend suggesting 4–5 year old classrooms score slightly higher on Emotional Support, but the sample is too small (7 classrooms) to say this with confidence. Worth watching in a larger dataset. Cronbach's α = 0.86 confirms the CLASS items are measuring the same underlying thing consistently.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINDINGS -->
+  <div class="section-label">Analytical findings &amp; equity flags</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">What the data shows</div>
+      <div class="card-note">Synthesized from R regression, SPSS ANOVA, and ECERS-3 subscale analysis</div>
+      <div class="finding pos">
+        <div class="finding-icon">✓</div>
+        <div class="finding-text"><strong>Emotional Support scores are high program-wide (M = 6.1/7)</strong> and do not track with ECERS composite — confirming that low composite scores reflect structural constraints, not teacher quality or program culture.</div>
+      </div>
+      <div class="finding pos">
+        <div class="finding-icon">✓</div>
+        <div class="finding-text"><strong>Full-time enrollment is the strongest positive predictor of attendance</strong> (β = +0.091, p &lt; .001). Conversion outreach to part-time families is a high-leverage QI target.</div>
+      </div>
+      <div class="finding warn">
+        <div class="finding-icon">!</div>
+        <div class="finding-text"><strong>Handwashing compliance is inconsistent and should not be treated as a program-wide failure.</strong> CR03 and CR06 score lowest — both have structural and staffing constraints that explain the pattern. Targeted coaching, not broad PD, is indicated.</div>
+      </div>
+      <div class="finding alert">
+        <div class="finding-icon">▲</div>
+        <div class="finding-text"><strong>CR06 is a priority equity flag.</strong> Highest IEP load (4 children), lowest attendance (79.8%), vacant co-teacher since September. This is a resource allocation issue, not a teacher performance issue.</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Methodology &amp; tools</div>
+      <div class="card-note">Analysis pipeline for this dashboard</div>
+      <div class="method-grid">
+        <div class="method-item">
+          <div class="method-tool">R 4.3</div>
+          <div class="method-desc">Linear regression via lm() · ggplot2 for visualization · attendance predictor modeling</div>
+        </div>
+        <div class="method-item">
+          <div class="method-tool">SPSS v28</div>
+          <div class="method-desc">One-way ANOVA · Cronbach's α reliability · Tukey HSD post-hoc · paired t-test</div>
+        </div>
+        <div class="method-item">
+          <div class="method-tool">Power BI</div>
+          <div class="method-desc">Dashboard design · cross-filter logic · KPI card layout · executive reporting</div>
+        </div>
+        <div class="method-item">
+          <div class="method-tool">ECERS-3</div>
+          <div class="method-desc">6 subscales · 7-pt scale · structural vs. process subscale separation</div>
+        </div>
+        <div class="method-item">
+          <div class="method-tool">CLASS</div>
+          <div class="method-desc">Emotional Support · Classroom Organization · Instructional Support domains</div>
+        </div>
+        <div class="method-item">
+          <div class="method-tool">ASQ-3</div>
+          <div class="method-desc">5 developmental domains · cutoff-based screening · child-level records</div>
+        </div>
+      </div>
+      <p style="font-size:10px;color:var(--muted);margin-top:14px;line-height:1.6;">
+        Dataset: Synthetic practitioner-derived data (133 children, 7 classrooms) modeled on realistic ECE program patterns. Missing values present by design — CR04 handwashing incomplete, scattered family engagement nulls. Structural subscale scores reflect a building constraint scenario consistent with programs operating in pre-1930s facilities.
+      </p>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <span>ECE Program Quality Dashboard · AY 2024 · Synthetic practitioner-derived dataset</span>
+  <span>Analysis: R 4.3 · SPSS v28 · Power BI · ECERS-3 · CLASS · ASQ-3</span>
+</footer>
+
+<script>
+const classrooms = [
+  {id:"CR01",es:6.1,co:5.4,is_:3.2,composite:3.85,hw:71,attend:88.2,iep:2,dll:4,age:"3-4yr",enrolled:18,
+   space:2.8,personal:3.9,lang:4.2,learn:4.0,interact:5.8,struct:2.4,note:"Hallway overflow"},
+  {id:"CR02",es:6.4,co:5.7,is_:3.8,composite:4.12,hw:84,attend:91.0,iep:1,dll:6,age:"4-5yr",enrolled:20,
+   space:2.5,personal:4.8,lang:4.6,learn:4.3,interact:6.3,struct:2.2,note:"Outdoor access blocked"},
+  {id:"CR03",es:5.6,co:4.8,is_:2.9,composite:3.65,hw:58,attend:83.7,iep:3,dll:3,age:"3-4yr",enrolled:17,
+   space:3.1,personal:3.2,lang:3.8,learn:3.9,interact:5.2,struct:2.7,note:"Transitions rough"},
+  {id:"CR04",es:6.2,co:5.5,is_:3.5,composite:4.08,hw:null,attend:87.4,iep:2,dll:7,age:"4-5yr",enrolled:19,
+   space:2.9,personal:4.1,lang:4.5,learn:4.7,interact:6.0,struct:2.3,note:"HW data missing"},
+  {id:"CR05",es:6.6,co:5.9,is_:4.0,composite:4.35,hw:79,attend:92.3,iep:0,dll:5,age:"3-5yr",enrolled:22,
+   space:2.7,personal:5.1,lang:4.8,learn:4.9,interact:6.5,struct:2.1,note:"14yr veteran teacher"},
+  {id:"CR06",es:5.9,co:5.1,is_:3.1,composite:3.73,hw:63,attend:79.8,iep:4,dll:2,age:"3-4yr",enrolled:16,
+   space:3.0,personal:3.6,lang:4.0,learn:3.8,interact:5.5,struct:2.5,note:"Co-teacher vacant Sept"},
+  {id:"CR07",es:6.0,co:5.3,is_:3.4,composite:4.0,hw:77,attend:85.5,iep:1,dll:8,age:"4-5yr",enrolled:21,
+   space:2.6,personal:4.4,lang:4.3,learn:4.4,interact:5.7,struct:2.6,note:"Highest DLL count"},
+];
+
+const COLORS = {
+  teal:'#1D9E75', tealLt:'rgba(29,158,117,0.15)',
+  blue:'#185FA5', blueLt:'rgba(24,95,165,0.15)',
+  amber:'#BA7517', amberLt:'rgba(186,117,23,0.2)',
+  coral:'#993C1D', coralLt:'rgba(153,60,29,0.15)',
+  gray:'#888780'
+};
+
+// ── ECERS SUBSCALE BARS ──
+const subscaleData = [
+  {name:"Space & furnishings", val: (2.8+2.5+3.1+2.9+2.7+3.0+2.6)/7, color:COLORS.coral},
+  {name:"Personal care",       val: (3.9+4.8+3.2+4.1+5.1+3.6+4.4)/7, color:COLORS.amber},
+  {name:"Language & literacy", val: (4.2+4.6+3.8+4.5+4.8+4.0+4.3)/7, color:COLORS.blue},
+  {name:"Learning activities", val: (4.0+4.3+3.9+4.7+4.9+3.8+4.4)/7, color:COLORS.blue},
+  {name:"Interaction quality", val: (5.8+6.3+5.2+6.0+6.5+5.5+5.7)/7, color:COLORS.teal},
+  {name:"Program structure",   val: (2.4+2.2+2.7+2.3+2.1+2.5+2.6)/7, color:COLORS.coral},
+];
+
+const subEl = document.getElementById('subscales');
+subscaleData.forEach(s => {
+  const pct = (s.val / 7 * 100).toFixed(1);
+  subEl.innerHTML += `
+    <div class="subscale-row">
+      <span class="subscale-name">${s.name}</span>
+      <div class="subscale-bars">
+        <div class="bar-wrap">
+          <div class="bar-fill" style="width:${pct}%;background:${s.color};"></div>
+          <div class="threshold-line"></div>
+        </div>
+      </div>
+      <span class="subscale-val" style="color:${s.color};">${s.val.toFixed(1)}</span>
+    </div>`;
+});
+
+// ── CLASSROOM TABLE ──
+const table = document.getElementById('classroomTable');
+table.innerHTML = `<thead><tr>
+  <th>Room</th><th>Age</th><th>n</th>
+  <th>ECERS composite</th><th>CLASS ES</th>
+  <th>Attendance</th><th>HW %</th><th>IEP</th><th>DLL</th><th>Flag</th>
+</tr></thead><tbody></tbody>`;
+const tbody = table.querySelector('tbody');
+classrooms.forEach(c => {
+  let flag = '';
+  if (c.id==='CR06') flag = '<span class="flag flag-alert">equity flag</span>';
+  else if (c.hw && c.hw < 65) flag = '<span class="flag flag-warn">HW low</span>';
+  else if (c.hw === null) flag = '<span class="flag flag-warn">HW missing</span>';
+  else flag = '<span class="flag flag-good">ok</span>';
+  const esColor = c.es >= 6.0 ? COLORS.teal : c.es >= 5.5 ? COLORS.amber : COLORS.coral;
+  tbody.innerHTML += `<tr>
+    <td><strong>${c.id}</strong></td>
+    <td>${c.age}</td>
+    <td>${c.enrolled}</td>
+    <td>${c.composite.toFixed(2)}</td>
+    <td style="color:${esColor};font-weight:500;">${c.es.toFixed(1)}</td>
+    <td>${c.attend}%</td>
+    <td>${c.hw !== null ? c.hw+'%' : '<em style="color:#aaa;">missing</em>'}</td>
+    <td>${c.iep}</td>
+    <td>${c.dll}</td>
+    <td>${flag}</td>
+  </tr>`;
+});
+
+// ── SCATTER: CLASS ES vs ECERS Composite ──
+new Chart(document.getElementById('scatterChart'), {
+  type:'scatter',
+  data:{ datasets:[{
+    label:'Classroom',
+    data: classrooms.map(c=>({x:c.composite, y:c.es, label:c.id})),
+    backgroundColor: classrooms.map(c=> c.id==='CR06'? COLORS.coral : c.id==='CR05'? COLORS.teal : COLORS.blue),
+    pointRadius:8, pointHoverRadius:10
+  }]},
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>`${ctx.raw.label}: ECERS ${ctx.raw.x.toFixed(2)}, CLASS ES ${ctx.raw.y.toFixed(1)}`}}
+    },
+    scales:{
+      x:{min:3.4,max:4.6,title:{display:true,text:'ECERS-3 Composite',font:{size:10}},ticks:{font:{size:10}}},
+      y:{min:5.2,max:7.0,title:{display:true,text:'CLASS Emotional Support',font:{size:10}},ticks:{font:{size:10}}}
+    }
+  }
+});
+
+// ── ATTENDANCE BAR ──
+const attendColors = classrooms.map(c=> c.attend < 82 ? COLORS.coral : c.attend > 90 ? COLORS.teal : COLORS.blue);
+new Chart(document.getElementById('attendChart'),{
+  type:'bar',
+  data:{
+    labels:classrooms.map(c=>c.id),
+    datasets:[{data:classrooms.map(c=>c.attend), backgroundColor:attendColors, borderRadius:3}]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:10}}},
+      y:{min:75,max:95,ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}}
+    }
+  }
+});
+
+// ── ASQ-3 HORIZONTAL BAR — high to low ──
+const asqDomains = ['Gross motor','Communication','Fine motor','Problem solving','Personal-social'];
+const asqScores  = [80, 74, 68, 63, 58];
+const asqColors  = asqScores.map(v => v >= 75 ? COLORS.teal : v >= 65 ? COLORS.blue : v >= 60 ? COLORS.amber : COLORS.coral);
+new Chart(document.getElementById('asqChart'),{
+  type:'bar',
+  data:{
+    labels: asqDomains,
+    datasets:[{
+      data: asqScores,
+      backgroundColor: asqColors,
+      borderRadius: 3
+    }]
+  },
+  options:{
+    indexAxis:'y',
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>`${ctx.raw}% of children on track`}}
+    },
+    scales:{
+      x:{min:40, max:90, ticks:{font:{size:10}, callback:v=>v+'%'}, grid:{color:'rgba(0,0,0,0.05)'}},
+      y:{grid:{display:false}, ticks:{font:{size:10}}}
+    }
+  }
+});
+
+// ── HANDWASHING ──
+const hwData = classrooms.map(c=>c.hw);
+const hwColors = hwData.map(v=> v===null ? '#ddd' : v<65 ? COLORS.coral : v<75 ? COLORS.amber : COLORS.teal);
+new Chart(document.getElementById('hwChart'),{
+  type:'bar',
+  data:{
+    labels:classrooms.map(c=>c.id),
+    datasets:[{
+      data:hwData.map(v=>v===null?0:v),
+      backgroundColor:hwColors, borderRadius:3
+    }]
+  },
+  options:{
+    indexAxis:'y',
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw===0?'Data missing':ctx.raw+'%'}}},
+    scales:{
+      x:{min:0,max:100,ticks:{font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}},
+      y:{grid:{display:false},ticks:{font:{size:10}}}
+    }
+  }
+});
+
+// ── REGRESSION COEFFICIENTS ──
+new Chart(document.getElementById('regChart'),{
+  type:'bar',
+  data:{
+    labels:['FT enrollment','Subsidy recipient','DLL status','IEP/IFSP'],
+    datasets:[{
+      data:[0.091,0.044,-0.021,-0.058],
+      backgroundColor:['#1D9E75','#1D9E75','#888780','#993C1D'],
+      borderRadius:3
+    }]
+  },
+  options:{
+    indexAxis:'y',
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`β = ${ctx.raw.toFixed(3)}`}}},
+    scales:{
+      x:{min:-0.12,max:0.14,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'},
+        title:{display:true,text:'β coefficient',font:{size:10}}},
+      y:{grid:{display:false},ticks:{font:{size:10}}}
+    }
+  }
+});
+
+// ── ANOVA GROUPED BAR ──
+new Chart(document.getElementById('anovaChart'),{
+  type:'bar',
+  data:{
+    labels:['CR01','CR02','CR03','CR04','CR05','CR06','CR07'],
+    datasets:[
+      {label:'CLASS ES score',data:[6.1,6.4,5.6,6.2,6.6,5.9,6.0],
+       backgroundColor:classrooms.map(c=>c.age.includes('3-4')?COLORS.blue:c.age==='3-5yr'?COLORS.amber:COLORS.teal),
+       borderRadius:3}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{grid:{display:false},ticks:{font:{size:10}}},
+      y:{min:4.5,max:7,ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'}}
+    }
+  }
+});
+</script>
+</body>
+</html>
