@@ -2,7 +2,7 @@
 
 **Tools:** R (lm, ggplot2) · SPSS v28 · Power BI · ECERS-3 · CLASS · ASQ-3 · TS GOLD  
 **Role simulated:** Early Childhood Data Analyst  
-**Target org type:** KinderCare Learning Centers / multi-site ECE provider with QI infrastructure  
+**Target org type:** Multi-site ECE provider with QI infrastructure  
 **Live dashboard:** * ecequality.netlify.app *
 
 ---
